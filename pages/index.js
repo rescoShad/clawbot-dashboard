@@ -245,15 +245,12 @@ function OrgOverview() {
           })}
         </div>
         <div className="connector vertical" />
-        <div className="agent-node neo-node">
-          <div className="agent-bot-icon"><Brain size={18} /></div>
-          <div>
-            <strong>Neo</strong>
-            <span>Chief of Staff</span>
-          </div>
+        <div className="neo-owner-card">
+          <div className="neo-avatar"><Brain size={22} /></div>
+          <strong>Neo</strong>
+          <span>Chief of Staff / Orchestrator</span>
         </div>
-        <div className="connector vertical short" />
-        <div className="org-label">AI Team</div>
+        <div className="connector vertical" />
         <div className="agent-row">
           {agents.filter((agent) => agent.name !== "Neo").map((agent) => (
             <div key={agent.name} className={`agent-node ${agent.status === "Active" ? "active-agent" : "draft-agent"}`}>
