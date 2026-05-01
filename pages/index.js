@@ -30,6 +30,15 @@ import {
   Workflow,
   Zap,
 } from "lucide-react";
+import {
+  stats as liveStats,
+  activity as liveActivity,
+  projects as liveProjects,
+  queues as liveQueues,
+  priorities as livePriorities,
+  lastUpdated,
+  agentStatus,
+} from "../data/state";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, active: true },
@@ -41,13 +50,6 @@ const navItems = [
   { label: "Analytics", icon: BarChart3 },
   { label: "Integrations", icon: Plug },
   { label: "Settings", icon: Settings },
-];
-
-const stats = [
-  { label: "Active Projects", value: "18", detail: "3 new this week", icon: FolderKanban, tone: "purple" },
-  { label: "Tasks In Progress", value: "27", detail: "6 updated today", icon: CheckCircle2, tone: "cyan" },
-  { label: "AI Agents Online", value: "3 / 6", detail: "50% active capacity", icon: Bot, tone: "gold" },
-  { label: "Businesses", value: "6", detail: "All systems active", icon: Building2, tone: "blue" },
 ];
 
 const businesses = [
@@ -68,30 +70,6 @@ const agents = [
   { name: "Connie", role: "Content Agent", status: "Drafted", detail: "Creates social posts, emails, video scripts, and marketing content." },
 ];
 
-const activity = [
-  { title: "Hector completed help article draft", detail: "ReiSearch onboarding: Add & Comp Property", time: "2m ago", icon: FileText, tone: "green" },
-  { title: "Bob updated buy box knowledge base", detail: "Added new qualifying questions", time: "15m ago", icon: Bot, tone: "green" },
-  { title: "Neo assigned HouseAble task", detail: "Create Home Bridge partner workflow", time: "1h ago", icon: Workflow, tone: "cyan" },
-  { title: "Quinn entered draft mode", detail: "Topic: onboarding QA review", time: "2h ago", icon: CircleAlert, tone: "gold" },
-  { title: "Penny Skips data sync complete", detail: "Synced 842 records", time: "3h ago", icon: Coins, tone: "gold" },
-];
-
-const projects = [
-  { name: "ReiSearch Help Center", tag: "ReiSearch", progress: 75, time: "2m ago" },
-  { name: "Bob Buy Box Workflow", tag: "ReiSearch", progress: 68, time: "15m ago" },
-  { name: "HouseAble Partner Ops", tag: "HouseAble", progress: 60, time: "1h ago" },
-  { name: "PCI Agent Outreach", tag: "PCI", progress: 40, time: "3h ago" },
-];
-
-const queues = [
-  { label: "Needs Shad Review", count: 7, tone: "purple" },
-  { label: "In Progress", count: 12, tone: "cyan" },
-  { label: "Ready for Devs", count: 5, tone: "blue" },
-  { label: "Ready to Publish", count: 4, tone: "green" },
-  { label: "Blocked", count: 2, tone: "red" },
-  { label: "Completed", count: 31, tone: "slate" },
-];
-
 const integrations = [
   { name: "OpenAI / ChatGPT", status: "Connected" },
   { name: "GitHub Repo", status: "Connected" },
@@ -103,13 +81,18 @@ const integrations = [
   { name: "BlueBubbles / iMessage", status: "Planned" },
 ];
 
-const priorities = [
-  "Finish Hector help center workflow for ReiSearch onboarding.",
-  "Keep Bob focused on buy box gathering and buyer criteria cleanup.",
-  "Draft Quinn next for QA testing across ReiSearch user flows.",
-  "Define OAuth requirements for Gmail, Contacts, and ChatGPT/OpenAI access.",
-  "Turn recurring Shad decisions into repeatable Clawbot operating rules.",
-];
+const iconMap = {
+  FolderKanban: FolderKanban,
+  CheckCircle2: CheckCircle2,
+  Bot: Bot,
+  Building2: Building2,
+  FileText: FileText,
+  Workflow: Workflow,
+  Coins: Coins,
+  CircleAlert: CircleAlert,
+};
+
+function getIcon(name) { return iconMap[name] || FolderKanban; }
 
 function StatusPill({ status }) {
   const clean = status.toLowerCase().replaceAll(" ", "-");
@@ -177,6 +160,10 @@ function Sidebar() {
           <span>Version</span>
           <strong>1.0.0</strong>
         </div>
+        <div className="mini-row" style={{ borderTop: "1px solid var(--border)", paddingTop: "10px", marginTop: "6px" }}>
+          <span style={{ fontSize: "11px", color: "var(--text-dim)" }}>Last updated</span>
+          <strong style={{ fontSize: "11px", color: "var(--text-muted)" }}>{new Date(lastUpdated).toLocaleString()}</strong>
+        </div>
       </div>
     </aside>
   );
@@ -191,7 +178,7 @@ function Header() {
           Multi-business AI operations
         </div>
         <h1>Welcome back, Shad 👋</h1>
-        <p>Here's what Clawbot is managing across your businesses, bots, and workflows.</p>
+        <p>{agentStatus}</p>
       </div>
       <div className="topbar-actions">
         <div className="search">
@@ -215,8 +202,8 @@ function Header() {
 function StatsGrid() {
   return (
     <div className="stats-grid">
-      {stats.map((stat) => {
-        const Icon = stat.icon;
+      {liveStats.map((stat) => {
+        const Icon = getIcon(stat.icon);
         return (
           <div key={stat.label} className={`stat-card ${stat.tone}`}>
             <div>
@@ -280,8 +267,8 @@ function ActivityFeed() {
     <Panel>
       <SectionTitle icon={Zap} title="Activity Feed" action="View All" />
       <div className="activity-list">
-        {activity.map((item) => {
-          const Icon = item.icon;
+        {liveActivity.map((item) => {
+          const Icon = getIcon(item.icon);
           return (
             <div key={item.title} className="activity-item">
               <div className={`activity-icon ${item.tone}`}>
@@ -305,7 +292,7 @@ function ProjectsPanel() {
     <Panel>
       <SectionTitle icon={FolderKanban} title="Recent Projects" />
       <div className="project-list">
-        {projects.map((project) => (
+        {liveProjects.map((project) => (
           <div key={project.name} className="project-item">
             <div>
               <h4>{project.name}</h4>
@@ -326,28 +313,32 @@ function ProjectsPanel() {
 }
 
 function CapacityPanel() {
+  const activeCount = agents.filter(a => a.status === "Active").length - 1; // exclude Neo from count (he's always active)
+  const draftedCount = agents.filter(a => a.status === "Drafted").length;
+  const total = agents.length - 1; // exclude Neo
+  const activePct = Math.round((activeCount / total) * 100);
   return (
     <Panel>
       <SectionTitle icon={ShieldCheck} title="AI Team Capacity" />
       <div className="capacity-wrap">
         <div className="capacity-ring">
           <div>
-            <strong>50%</strong>
+            <strong>{activePct}%</strong>
             <span>Active</span>
           </div>
         </div>
         <div className="capacity-list">
           <div>
             <span className="green-dot" />
-            Active Agents <strong>3</strong>
+            Active Agents <strong>{activeCount}</strong>
           </div>
           <div>
             <span className="gold-dot" />
-            Drafted Agents <strong>3</strong>
+            Drafted Agents <strong>{draftedCount}</strong>
           </div>
           <div>
             <span className="blue-dot" />
-            Total Capacity <strong>6</strong>
+            Total Capacity <strong>{total}</strong>
           </div>
         </div>
       </div>
@@ -374,7 +365,7 @@ function QueuesPanel() {
     <Panel>
       <SectionTitle icon={SquareCheckBig} title="Active Work Queues" />
       <div className="queue-grid">
-        {queues.map((queue) => (
+        {liveQueues.map((queue) => (
           <div key={queue.label} className={`queue-card ${queue.tone}`}>
             <span>{queue.label}</span>
             <strong>{queue.count}</strong>
@@ -429,7 +420,7 @@ function PrioritiesPanel() {
     <Panel>
       <SectionTitle icon={Activity} title="Current Priorities" />
       <div className="priority-list">
-        {priorities.map((priority, index) => (
+        {livePriorities.map((priority, index) => (
           <div key={priority} className="priority-item">
             <strong>{index + 1}</strong>
             <p>{priority}</p>
